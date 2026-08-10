@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<meta name="description" content="XifangProject · 3D 弹幕 Boss 战电影运镜原型" />
+<title>XifangProject · 3D Boss Battle Prototype</title>
+<link rel="stylesheet" href="./assets/styles/main.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+  <div class="tilt top"></div><div class="tilt bottom"></div><div class="film"></div><div class="grain"></div>
+  <div class="hud">
+    <div class="top">
+      <div class="boss">
+        <div class="eyebrow">WEBGL 3D / 41S CINEMATIC SET / LAYERED DANMAKU</div>
+        <h1>境界「万华星河的终端映写」</h1>
+        <div class="barrow"><span>境界妖 · 视觉验证Boss</span><div class="bar"><div class="fill"></div></div></div>
+      </div>
+      <div class="status"><b>41秒镜头组 · 动势连续空战蒙太奇 / 2D判定</b><span id="phaseText">镜头组已接管Boss技能段落</span><div class="mode-pill" id="modePill"><i></i><span id="modeText">NORMAL VIEW</span></div></div>
+    </div>
+    <div class="brief"><b>美术表现逻辑</b><p>二维命中点改为分层波前：同一时刻只突出当前危险层、次级预告层与少量结构主节点，避免所有落点同时发光。五个镜头使用连续航迹与动作匹配剪辑，包含无操作表演窗；玩家只控制相对屏幕位移，镜头和角色的世界运动不会改变二维操控结果。</p><div class="legend"><span class="chip" style="color:#c59aff"><i class="dot"></i>16枚图案映射符印</span><span class="chip" style="color:#88efff"><i class="dot"></i>低权重银河牵引束</span><span class="chip" style="color:#ff579f"><i class="dot"></i>波前命中 / 米粒 / 针 / 花瓣</span></div></div>
+    <div class="controls"><kbd>WASD</kbd><span>移动</span><kbd>SHIFT</kbd><span>低速 / 核心 / 弹着点</span><button id="focusBtn">专注预览</button><button id="pause">暂停</button><button id="reset">重置</button></div>
+    <div class="metrics"><div class="metric"><small>SKILL / FIELD</small><b id="skillState">SHOT 01</b></div><div class="metric"><small>CAMERA</small><b id="cameraState">SHOT 01</b></div><div class="metric"><small>FOCUS</small><b id="focusState">OFF</b></div><div class="metric"><small>FPS</small><b id="fps">60</b></div></div>
+    <div class="focus-tag" id="focusTag">FOCUS · 碰撞核心与高危弹着点</div>
+    <div class="intro" id="intro"><div><small>三维符卡投射视觉原型</small><h2>万华星河</h2><p>41秒战斗运镜 · 五镜头连续蒙太奇 · 相对位移操控</p></div></div>
+  </div>
+</div>
+<script src="./src/config/camera.js"></script>
+<script src="./src/render/shaders.js"></script>
+<script src="./src/core/runtime.js"></script>
+<script src="./src/core/math-camera.js"></script>
+<script src="./src/render/programs.js"></script>
+<script src="./src/render/geometry.js"></script>
+<script src="./src/render/targets.js"></script>
+<script src="./src/scene/data.js"></script>
+<script src="./src/render/batches.js"></script>
+<script src="./src/scene/entities.js"></script>
+<script src="./src/effects/danmaku.js"></script>
+<script src="./src/game/loop.js"></script>
+</body>
+</html>
