@@ -1,44 +1,84 @@
 // Cinematic camera timeline and framing data.
 const CAMERA_DEFAULT={eye:[0,1.2,8],target:[0,1,-8],up:[0,1,0],fov:36*Math.PI/180,near:.075,far:120};
-const SHOT_DURATION=8.2;
+
+// Five combat skill blocks are preserved, but the editorial timeline now contains ten real cuts.
+// Performance inserts are genuine non-interactive shots instead of simply padding the head/tail of a gameplay camera.
+// Axis rule: every camera path stays on the same side (negative world X) of the primary flight/action axis.
 const CAMERA_SHOTS=[
-  {name:'SHOT 01',label:'镜头一·低位尾追建立',skill:'星河散华',mode:0,duration:SHOT_DURATION,safeIn:1.20,safeOut:7.00,technique:'CHASE WIDE / MATCH VECTOR'},
-  {name:'SHOT 02',label:'镜头二·右翼近距并行',skill:'扇面米粒阵',mode:4,duration:SHOT_DURATION,safeIn:1.35,safeOut:7.05,technique:'CUT-IN CLOSE / SAME AXIS'},
-  {name:'SHOT 03',label:'镜头三·迎头长焦擦身',skill:'针束压制',mode:2,duration:SHOT_DURATION,safeIn:1.15,safeOut:6.85,technique:'HEAD-ON / WHIP MATCH'},
-  {name:'SHOT 04',label:'镜头四·Boss近景反打',skill:'花瓣回旋',mode:3,duration:SHOT_DURATION,safeIn:1.45,safeOut:7.00,technique:'CLOSE REVERSE / EYELINE'},
-  {name:'SHOT 05',label:'镜头五·尾追脱离大全景',skill:'终端坠流',mode:1,duration:SHOT_DURATION,safeIn:1.55,safeOut:6.90,technique:'CHASE RELEASE / PULL BACK'}
+  {name:'CUT 01',label:'镜头一A·低位尾追建立',skill:'星河散华',patternKey:0,mode:0,duration:2.40,safeIn:9,safeOut:0,operation:false,showCards:false,showField:false,performance:'开场建立 / 双方同向高速进入',technique:'CHASE WIDE / SAME SIDE'},
+  {name:'CUT 02',label:'镜头一B·尾追交战',skill:'星河散华',patternKey:0,mode:0,duration:5.80,safeIn:.55,safeOut:5.25,operation:true,showCards:true,showField:true,performance:'',technique:'CHASE ATTACK / MATCH VECTOR'},
+
+  {name:'CUT 03',label:'镜头二A·Boss蓄势特写',skill:'扇面米粒阵',patternKey:1,mode:4,duration:2.40,safeIn:1.95,safeOut:0,operation:false,showCards:true,showField:true,performance:'Boss攻击前起手 / 符卡展开',technique:'BOSS CLOSE / SAME AXIS'},
+  {name:'CUT 04',label:'镜头二B·同侧近距并行',skill:'扇面米粒阵',patternKey:1,mode:4,duration:6.00,safeIn:.50,safeOut:5.45,operation:true,showCards:true,showField:true,performance:'',technique:'CUT-IN CLOSE / LEAD ROOM'},
+
+  {name:'CUT 05',label:'镜头三·长焦压缩擦身',skill:'针束压制',patternKey:2,mode:2,duration:6.20,safeIn:.55,safeOut:5.55,operation:true,showCards:true,showField:true,performance:'',technique:'TELEPHOTO PASS / NO AXIS CROSS'},
+  {name:'CUT 06',label:'镜头三B·主角反应特写',skill:'针束压制',patternKey:2,mode:2,duration:2.00,safeIn:9,safeOut:0,operation:false,showCards:false,showField:false,performance:'关键擦身后的主角近景 / 动作延续',technique:'PLAYER CLOSE / MOTION MATCH'},
+
+  {name:'CUT 07',label:'镜头四A·Boss二次起手',skill:'花瓣回旋',patternKey:3,mode:3,duration:2.30,safeIn:1.85,safeOut:0,operation:false,showCards:true,showField:true,performance:'Boss抬手锁定 / 攻击前静压',technique:'BOSS INSERT / EYELINE HOLD'},
+  {name:'CUT 08',label:'镜头四B·同侧侧追交战',skill:'花瓣回旋',patternKey:3,mode:3,duration:6.00,safeIn:.50,safeOut:5.45,operation:true,showCards:true,showField:true,performance:'',technique:'SIDE TRACK / SAME SCREEN DIR'},
+
+  {name:'CUT 09',label:'镜头五A·主角决断特写',skill:'终端坠流',patternKey:4,mode:1,duration:1.80,safeIn:9,safeOut:0,operation:false,showCards:false,showField:false,performance:'最终攻势前主角近景 / 保留上一镜侧倾',technique:'PLAYER INSERT / CUT ON ACTION'},
+  {name:'CUT 10',label:'镜头五B·尾追脱离大全景',skill:'终端坠流',patternKey:4,mode:1,duration:7.40,safeIn:.65,safeOut:6.70,operation:true,showCards:true,showField:true,performance:'',technique:'CHASE RELEASE / PULL BACK'}
 ];
-// 五个镜头现在是五条独立摄影段：镜头边界允许硬切，不再共享闭合样条。
-// 连续性由“动作轴 + 屏幕速度方向 + 视线方向”维持，而不是由相机世界坐标连续维持。
-// 每条 path 为 cubic Bezier 摄影轨迹；frame 为该镜头内部的构图起终值。
+
+// Each cut owns an independent cubic-Bezier camera move. World-space position is allowed to jump at edits.
+// Montage continuity comes from action-axis discipline, screen-direction matching, eyeline and cut-on-action timing.
 const CAMERA_SETUPS=[
   {
-    path:[[0,1.25,9.2],[1.1,1.05,5.8],[2.3,1.30,1.2],[3.0,1.55,-2.6]],
-    fov:[39.5,36.0],roll:[-.015,-.060],lookLift:[.18,.32],lookSide:[-.12,.26],
-    bossSide:[.10,.55],bossLift:[1.62,1.46],bossDepth:[24.6,22.8],playerSide:[-.12,-.28],playerLift:[.30,.34],playerDepth:[4.75,4.55],planeDepth:[10.8,10.4],planeLift:[.02,.08]
+    path:[[-1.35,1.20,9.6],[-1.65,1.12,7.4],[-2.05,1.22,4.5],[-2.45,1.38,1.5]],
+    fov:[41.0,38.5],roll:[-.012,-.030],lookLift:[.16,.22],lookSide:[-.16,.04],
+    bossSide:[.12,.34],bossLift:[1.62,1.54],bossDepth:[25.6,24.0],playerSide:[-.14,-.24],playerLift:[.30,.33],playerDepth:[4.85,4.68],planeDepth:[10.9,10.6],planeLift:[.02,.05]
   },
   {
-    // 与上一镜保持同向飞行，但硬切到右翼近距机位；主体仍沿画面右前方运动。
-    path:[[-5.6,2.55,-3.5],[-3.7,2.75,-6.8],[-1.5,3.05,-10.8],[1.8,3.35,-14.3]],
-    fov:[31.5,35.0],roll:[-.105,-.145],lookLift:[.42,.54],lookSide:[.48,.22],
-    bossSide:[1.10,.42],bossLift:[1.48,1.72],bossDepth:[16.8,18.6],playerSide:[-.56,-.30],playerLift:[.24,.36],playerDepth:[4.15,4.45],planeDepth:[9.2,9.8],planeLift:[.10,.04]
+    path:[[-2.45,1.38,1.5],[-2.75,1.46,-1.7],[-3.20,1.66,-5.5],[-3.70,1.90,-9.7]],
+    fov:[38.5,35.5],roll:[-.030,-.072],lookLift:[.22,.34],lookSide:[.04,.30],
+    bossSide:[.34,.60],bossLift:[1.54,1.44],bossDepth:[24.0,22.6],playerSide:[-.24,-.34],playerLift:[.33,.36],playerDepth:[4.68,4.48],planeDepth:[10.6,10.2],planeLift:[.05,.08]
   },
   {
-    // 镜头跨到前方做迎头压缩，但利用安全窗完成轴线越过；擦身点后用甩镜接回原运动方向。
-    path:[[3.6,5.2,-20.5],[2.8,4.7,-18.0],[1.5,3.8,-13.8],[-1.8,3.1,-9.4]],
-    fov:[30.0,39.0],roll:[.055,.105],lookLift:[-.08,-.26],lookSide:[-.16,-.36],
-    bossSide:[-.34,-.72],bossLift:[2.12,2.28],bossDepth:[21.0,24.0],playerSide:[.34,.46],playerLift:[.50,.55],playerDepth:[4.90,5.15],planeDepth:[10.9,11.5],planeLift:[-.14,-.22]
+    // Boss close-up stays on the established side of the action axis; the cut changes shot size, not screen direction.
+    path:[[-5.65,2.80,-8.4],[-5.82,2.94,-9.8],[-6.00,3.12,-11.3],[-6.18,3.34,-12.9]],
+    fov:[29.0,27.0],roll:[-.055,-.075],lookLift:[.34,.42],lookSide:[.28,.12],
+    bossSide:[.28,.08],bossLift:[.90,1.02],bossDepth:[7.10,6.35],playerSide:[-1.90,-1.70],playerLift:[-.10,.00],playerDepth:[4.10,4.00],planeDepth:[8.7,8.5],planeLift:[.08,.10]
   },
   {
-    // 高速动作后突然切近：Boss占据更大画幅，短暂强调表情/起手，再让玩家重新进入同向并行关系。
-    path:[[-2.9,2.75,-7.0],[-4.3,2.85,-9.6],[-5.4,3.15,-13.1],[-5.9,3.65,-16.8]],
-    fov:[27.5,32.0],roll:[-.025,.020],lookLift:[.18,.08],lookSide:[.22,-.06],
-    bossSide:[-.72,-.18],bossLift:[1.34,1.58],bossDepth:[12.8,16.2],playerSide:[.48,.14],playerLift:[.14,.26],playerDepth:[4.05,4.30],planeDepth:[8.8,9.7],planeLift:[.05,.00]
+    // Same-side parallel cut: strong lead room is kept in front of the flight vector.
+    path:[[-6.05,2.48,-6.0],[-6.18,2.62,-9.2],[-6.05,2.90,-12.8],[-5.72,3.22,-16.6]],
+    fov:[31.0,34.5],roll:[-.095,-.128],lookLift:[.40,.52],lookSide:[.48,.24],
+    bossSide:[1.02,.46],bossLift:[1.44,1.68],bossDepth:[16.5,18.8],playerSide:[-.58,-.32],playerLift:[.24,.37],playerDepth:[4.10,4.46],planeDepth:[9.2,9.8],planeLift:[.10,.04]
   },
   {
-    // 从中近景硬切回尾追大全景，先继承上一镜屏幕右向动势，再逐渐拉远释放规模感。
-    path:[[4.8,2.15,-7.2],[5.4,2.05,-10.0],[4.0,1.95,-14.8],[1.0,2.25,-20.8]],
-    fov:[36.0,43.0],roll:[.075,.018],lookLift:[.34,.48],lookSide:[.34,.04],
-    bossSide:[.86,.18],bossLift:[1.28,1.62],bossDepth:[19.2,27.0],playerSide:[-.48,-.12],playerLift:[.18,.26],playerDepth:[4.65,5.35],planeDepth:[10.2,12.0],planeLift:[.16,.20]
+    // Telephoto compression replaces the old axis-crossing head-on setup. Camera remains negative-X throughout.
+    path:[[-5.70,4.42,-15.8],[-5.35,4.16,-18.4],[-4.82,3.72,-21.2],[-4.18,3.20,-24.0]],
+    fov:[29.0,36.5],roll:[.025,.070],lookLift:[-.02,-.22],lookSide:[-.08,-.30],
+    bossSide:[-.22,-.58],bossLift:[2.02,2.20],bossDepth:[20.0,23.2],playerSide:[.28,.44],playerLift:[.46,.54],playerDepth:[4.82,5.08],planeDepth:[10.8,11.4],planeLift:[-.12,-.20]
+  },
+  {
+    // Player reaction close-up inherits the previous banking direction; camera keeps drifting forward instead of stopping.
+    path:[[-4.28,2.08,-20.6],[-4.20,2.12,-21.5],[-4.10,2.18,-22.6],[-3.98,2.26,-23.8]],
+    fov:[27.0,28.5],roll:[.068,.040],lookLift:[.04,.12],lookSide:[-.20,-.08],
+    bossSide:[2.10,2.35],bossLift:[1.40,1.55],bossDepth:[17.0,18.0],playerSide:[-.58,-.42],playerLift:[-.02,.06],playerDepth:[1.72,1.92],planeDepth:[7.8,8.0],planeLift:[.00,.02]
+  },
+  {
+    // Reverse subject, not reverse axis: Boss insert is still photographed from the same side of the flight line.
+    path:[[-5.28,3.02,-21.4],[-5.18,3.08,-22.5],[-5.06,3.18,-23.7],[-4.92,3.32,-25.0]],
+    fov:[27.5,29.5],roll:[.030,.008],lookLift:[.22,.16],lookSide:[.18,.04],
+    bossSide:[-.22,-.04],bossLift:[1.02,1.18],bossDepth:[6.20,7.10],playerSide:[-2.10,-1.85],playerLift:[.10,.16],playerDepth:[3.95,4.10],planeDepth:[8.2,8.6],planeLift:[.04,.02]
+  },
+  {
+    path:[[-6.35,2.42,-18.4],[-6.48,2.58,-21.4],[-6.24,2.86,-25.0],[-5.82,3.18,-29.0]],
+    fov:[32.0,34.0],roll:[-.040,.018],lookLift:[.18,.08],lookSide:[.28,.02],
+    bossSide:[-.62,-.18],bossLift:[1.30,1.56],bossDepth:[14.0,17.0],playerSide:[.44,.16],playerLift:[.16,.28],playerDepth:[4.05,4.34],planeDepth:[9.0,9.8],planeLift:[.04,.00]
+  },
+  {
+    // Final player insert is a cut-on-action: shot size changes while the banking vector is preserved.
+    path:[[-5.55,2.05,-27.5],[-5.42,2.08,-28.4],[-5.26,2.13,-29.5],[-5.08,2.20,-30.7]],
+    fov:[26.5,28.0],roll:[.042,.018],lookLift:[.08,.16],lookSide:[-.16,-.02],
+    bossSide:[2.20,2.45],bossLift:[1.36,1.46],bossDepth:[18.0,19.0],playerSide:[-.50,-.36],playerLift:[-.04,.04],playerDepth:[1.62,1.82],planeDepth:[7.8,8.0],planeLift:[.00,.02]
+  },
+  {
+    // Wide release remains on the same side, then eases toward the axis without crossing it.
+    path:[[-5.75,2.22,-29.0],[-5.50,2.18,-32.5],[-4.35,2.14,-38.2],[-2.15,2.38,-46.0]],
+    fov:[36.0,44.0],roll:[.070,.012],lookLift:[.34,.50],lookSide:[.34,.05],
+    bossSide:[.82,.16],bossLift:[1.26,1.64],bossDepth:[19.0,28.0],playerSide:[-.46,-.10],playerLift:[.18,.28],playerDepth:[4.62,5.42],planeDepth:[10.3,12.2],planeLift:[.16,.22]
   }
 ];
