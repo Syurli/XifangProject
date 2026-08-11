@@ -11,7 +11,11 @@ function queueCard(c){
 function laserColor(id){return id===0?hex('#8fefff'):id===1?hex('#c995ff'):hex('#ff5e9f')}
 function queueLaserField(cards,local){
   resetLaserBatches();
-  const shot=sequenceState.shot,focus=player.focus,operation=sequenceState.operation;
+  const shot=sequenceState.shot;
+  // Character close-ups deliberately remove the projection field so the insert reads as a clean reaction shot.
+  // Boss wind-up inserts keep a low-weight prelude field because the attack source is the point of the shot.
+  if(shot.showField===false)return;
+  const focus=player.focus,operation=sequenceState.operation;
   const enter=smooth((local-shot.safeIn)/.38),leave=1-smooth((local-shot.safeOut)/.42),actionMask=enter*leave;
   const actionT=Math.max(0,local-shot.safeIn),front=fract(actionT*.145),front2=fract(front+.43);
   const focusCandidates=[];
@@ -35,12 +39,12 @@ function queueLaserField(cards,local){
     if(strike>.42&&i%48===0&&operation)queue(additive,meshes.torus,ringModel(add(end,scale(camForward,-.02)),.10+.10*strike,.08,time*.12+s.seed),col,.08+.10*strike,.72,.48,.02);
   }
   const playerPlane=projectToImpactPlane(playerWorldPos());
-  if(player.focus){
+  if(player.focus&&operation){
     queue(additive,meshes.torus,ringModel(add(playerPlane,scale(camForward,-.024)),.13,.10,time*.12),hex('#8fefff'),.22,.78,.62,.02);
     queue(additive,meshes.torus,ringModel(add(playerPlane,scale(camForward,-.042)),.06,.09,-time*.18),hex('#fffaff'),.31,1.0,.7,.02);
     focusCandidates.sort((a,b)=>b.danger-a.danger);for(const c of focusCandidates.slice(0,12)){const r=.07+.055*(1-c.charge)+.035*c.strike;queue(additive,meshes.torus,ringModel(add(c.end,scale(camForward,-.018)),r,.085,time*.08+c.seed),c.col,.12+.15*c.charge+.12*c.strike,.72,.52,.02)}
   }
   if(!operation){
-    const cue=add(impactPlaneCenter,scale(camUp,-1.62));queue(additive,meshes.torus,ringModel(cue,.18+.025*Math.sin(time*2),.09,time*.08),hex('#fff2ff'),.10,.62,.42,.02);
+    const cue=add(impactPlaneCenter,scale(camUp,-1.62));queue(additive,meshes.torus,ringModel(cue,.18+.025*Math.sin(time*2),.09,time*.08),hex('#fff2ff'),.08,.56,.38,.02);
   }
 }
