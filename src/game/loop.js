@@ -1,10 +1,10 @@
 function phaseText(local){
   const shot=sequenceState.shot;
-  if(local<shot.safeIn*.46)return `${shot.label} · ${shot.technique}：沿上一镜速度矢量继续运动`;
-  if(local<shot.safeIn)return `${shot.label} · 动作匹配：角色转向先发生，相机随后接管`;
+  if(local<shot.safeIn*.46)return `${shot.label} · ${shot.technique}：切镜后继承上一镜屏幕动势`;
+  if(local<shot.safeIn)return `${shot.label} · 动作匹配：主体动作跨越切点，相机不重新起步`;
   if(local<shot.safeIn+.55)return `${shot.label} · ${shot.skill}：二维危险波前开始锁定`;
-  if(local<shot.safeOut)return player.focus?`${shot.label} · ${shot.skill}：专注模式仅强调邻近高危层`:`${shot.label} · ${shot.skill}：相对位移操控 / 摄影航迹不改判定`;
-  return `${shot.label} · 收束：保持屏幕运动方向并把动势交给下一镜`;
+  if(local<shot.safeOut)return player.focus?`${shot.label} · ${shot.skill}：专注模式仅强调邻近高危层`:`${shot.label} · ${shot.skill}：相对位移操控 / 切镜不改二维判定`;
+  return `${shot.label} · 收束：保留视线轴与速度方向，准备下一次硬切`;
 }
 function update(dt){
   applyCameraShot(time);updateCamera();updateBattleFrame();
@@ -14,9 +14,9 @@ function update(dt){
   player.vx=lerp(player.vx,dx*sp,1-Math.pow(.001,dt));player.vy=lerp(player.vy,dy*sp,1-Math.pow(.001,dt));
   player.x=clamp(player.x+player.vx*dt,-2.65,2.65);player.y=clamp(player.y+player.vy*dt,-2.0,.56);
   UI.focus.textContent=f?'ON':'OFF';UI.focusTag.classList.toggle('on',f);UI.focusBtn.classList.toggle('on',focusToggle);UI.modePill.classList.toggle('on',f);
-  UI.modeText.textContent=canOperate?(f?'FOCUS / DANGER LAYER':'RELATIVE CONTROL / ACTIVE'):'CINEMATIC / INPUT HOLD';
+  UI.modeText.textContent=canOperate?(f?'FOCUS / DANGER LAYER':'RELATIVE CONTROL / ACTIVE'):'CINEMATIC CUT / INPUT HOLD';
   if(sequenceState.index!==patternIndex){patternIndex=sequenceState.index;rebuildPattern(sequenceState.shot.mode)}
-  if(UI.cameraState)UI.cameraState.textContent=sequenceState.shot.name;if(UI.skillState)UI.skillState.textContent=canOperate?sequenceState.shot.skill:'PERFORMANCE';
+  if(UI.cameraState)UI.cameraState.textContent=sequenceState.shot.name;if(UI.skillState)UI.skillState.textContent=canOperate?sequenceState.shot.skill:'PERFORMANCE / CUT';
 }
 function renderScene(){
   gl.bindFramebuffer(gl.FRAMEBUFFER,sceneFbo);gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.016,.004,.032,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.depthMask(true);gl.disable(gl.BLEND);
