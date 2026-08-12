@@ -5,7 +5,10 @@ function flushOpaque(){gl.disable(gl.BLEND);gl.depthMask(true);for(const o of op
 function flushAlpha(){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);for(const o of alpha)draw(o.mesh,o.model,o.color,o.opacity,o.emissive,o.rim,o.gloss);alpha.length=0}
 function flushAdditive(){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.depthMask(false);for(const o of additive)draw(o.mesh,o.model,o.color,o.opacity,o.emissive,o.rim,o.gloss);additive.length=0;gl.depthMask(true);gl.disable(gl.BLEND)}
 
-function drawStars(){gl.useProgram(pointProgram);gl.uniformMatrix4fv(PL.uVP,false,VP);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffers.p);gl.enableVertexAttribArray(PL.aPos);gl.vertexAttribPointer(PL.aPos,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffers.s);gl.enableVertexAttribArray(PL.aSize);gl.vertexAttribPointer(PL.aSize,1,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffers.c);gl.enableVertexAttribArray(PL.aColor);gl.vertexAttribPointer(PL.aColor,3,gl.FLOAT,false,0,0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.depthMask(false);gl.drawArrays(gl.POINTS,0,starCount);gl.depthMask(true);gl.disable(gl.BLEND)}
+function drawStars(){
+  const profile=visualProfile(),count=Math.max(180,Math.floor(starCount*profile.starAlpha));
+  gl.useProgram(pointProgram);gl.uniformMatrix4fv(PL.uVP,false,VP);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffers.p);gl.enableVertexAttribArray(PL.aPos);gl.vertexAttribPointer(PL.aPos,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffers.s);gl.enableVertexAttribArray(PL.aSize);gl.vertexAttribPointer(PL.aSize,1,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,starBuffers.c);gl.enableVertexAttribArray(PL.aColor);gl.vertexAttribPointer(PL.aColor,3,gl.FLOAT,false,0,0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.depthMask(false);gl.drawArrays(gl.POINTS,0,count);gl.depthMask(true);gl.disable(gl.BLEND)
+}
 
 const laserBuffers={p:gl.createBuffer(),c:gl.createBuffer(),a:gl.createBuffer(),x:gl.createBuffer()};
 const impactBuffers={p:gl.createBuffer(),s:gl.createBuffer(),c:gl.createBuffer(),a:gl.createBuffer(),t:gl.createBuffer(),r:gl.createBuffer()};
@@ -27,8 +30,8 @@ function pushCameraCrossing(end,color,alpha,seed){
   const toward=norm(sub(CAMERA.eye,end)),nearCam=add(CAMERA.eye,scale(toward,-.16));
   const lateral=add(scale(camRight,Math.sin(seed*1.7)*.08),scale(camUp,Math.cos(seed*1.13)*.06));
   const through=add(add(CAMERA.eye,scale(toward,1.05)),lateral);
-  pushRibbon(end,nearCam,.0075,color,alpha,alpha*.28);
-  pushRibbon(nearCam,through,.013,mix3(color,[1,1,1],.34),alpha*.28,0.0);
+  pushRibbon(end,nearCam,.0068,color,alpha,alpha*.24);
+  pushRibbon(nearCam,through,.011,mix3(color,[1,1,1],.28),alpha*.24,0.0);
 }
 function pushImpact(p,size,color,alpha,type=0,rot=0){impactPos.push(...p);impactSize.push(size);impactCol.push(...color);impactAlpha.push(alpha);impactType.push(type);impactRot.push(rot)}
 function drawLaserRibbons(){if(!laserAlpha.length)return;gl.useProgram(laserProgram);gl.uniformMatrix4fv(LL.uVP,false,VP);
