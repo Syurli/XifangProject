@@ -24,65 +24,46 @@ function lerp(a,b,t){return a+(b-a)*t}
 function smooth(t){t=clamp(t,0,1);return t*t*(3-2*t)}
 function easeOut(t){t=clamp(t,0,1);return 1-Math.pow(1-t,3)}
 function hex(h){h=h.replace('#','');const n=parseInt(h,16);return[((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255]}
-function bezier(a,b,c,d,t){const u=1-t,uu=u*u,tt=t*t;return[
-  uu*u*a[0]+3*uu*t*b[0]+3*u*tt*c[0]+tt*t*d[0],
-  uu*u*a[1]+3*uu*t*b[1]+3*u*tt*c[1]+tt*t*d[1],
-  uu*u*a[2]+3*uu*t*b[2]+3*u*tt*c[2]+tt*t*d[2]]}
-function bezierTangent(a,b,c,d,t){const u=1-t;return norm([
-  3*u*u*(b[0]-a[0])+6*u*t*(c[0]-b[0])+3*t*t*(d[0]-c[0]),
-  3*u*u*(b[1]-a[1])+6*u*t*(c[1]-b[1])+3*t*t*(d[1]-c[1]),
-  3*u*u*(b[2]-a[2])+6*u*t*(c[2]-b[2])+3*t*t*(d[2]-c[2])])}
+function bezier(a,b,c,d,t){const u=1-t,uu=u*u,tt=t*t;return[uu*u*a[0]+3*uu*t*b[0]+3*u*tt*c[0]+tt*t*d[0],uu*u*a[1]+3*uu*t*b[1]+3*u*tt*c[1]+tt*t*d[1],uu*u*a[2]+3*uu*t*b[2]+3*u*tt*c[2]+tt*t*d[2]]}
+function bezierTangent(a,b,c,d,t){const u=1-t;return norm([3*u*u*(b[0]-a[0])+6*u*t*(c[0]-b[0])+3*t*t*(d[0]-c[0]),3*u*u*(b[1]-a[1])+6*u*t*(c[1]-b[1])+3*t*t*(d[1]-c[1]),3*u*u*(b[2]-a[2])+6*u*t*(c[2]-b[2])+3*t*t*(d[2]-c[2])])}
 function cyclicDistance(a,b){const d=Math.abs(a-b);return Math.min(d,1-d)}
 function rangePulse(v,a,b,soft=.08){return smooth((v-a)/soft)*(1-smooth((v-b)/soft))}
 function shotEnvelope(t){const s=Math.sin(Math.PI*clamp(t,0,1));return s*s}
 function setupAt(i){return CAMERA_SETUPS[(i%CAMERA_SETUPS.length+CAMERA_SETUPS.length)%CAMERA_SETUPS.length]}
 function shotScalar(prop,idx,t){const v=setupAt(idx)[prop];return lerp(v[0],v[1],smooth(t))}
-function shotIndexAt(local){
-  for(let i=CAMERA_SHOTS.length-1;i>=0;i--)if(local>=SHOT_OFFSETS[i])return i;
-  return 0;
-}
+function visualProfile(){return VISUAL_PROFILES[sequenceState.shot.clarity]||VISUAL_PROFILES.COMBAT}
 const view=M4(),proj=M4(),VP=M4();let camForward=[0,-.12,-.99],camRight=[1,0,0],camUp=[0,1,0];
 function setVec3(dst,src){dst[0]=src[0];dst[1]=src[1];dst[2]=src[2];}
 function applyCameraShot(t){
   const local=((t%SEQUENCE_DURATION)+SEQUENCE_DURATION)%SEQUENCE_DURATION;
-  const idx=shotIndexAt(local),shot=CAMERA_SHOTS[idx],segLocal=local-SHOT_OFFSETS[idx],raw=clamp(segLocal/shot.duration,0,1),setup=setupAt(idx);
-  // Every setup is an independent camera move. Cuts are hard edits; the camera never interpolates across an edit boundary.
+  let idx=CAMERA_SHOTS.length-1;
+  for(let i=0;i<CAMERA_SHOTS.length;i++){if(local<SHOT_OFFSETS[i]+CAMERA_SHOTS[i].duration){idx=i;break}}
+  const shot=CAMERA_SHOTS[idx],segLocal=local-SHOT_OFFSETS[idx],raw=clamp(segLocal/shot.duration,0,1),setup=setupAt(idx);
   const eye=bezier(setup.path[0],setup.path[1],setup.path[2],setup.path[3],raw),tangent=bezierTangent(setup.path[0],setup.path[1],setup.path[2],setup.path[3],raw);
   let right=norm(cross(tangent,[0,1,0]));if(len(right)<.001)right=[1,0,0];let up=norm(cross(right,tangent));
   const env=shotEnvelope(raw);
   let roll=shotScalar('roll',idx,raw),lookLift=shotScalar('lookLift',idx,raw),lookSide=shotScalar('lookSide',idx,raw),fov=shotScalar('fov',idx,raw);
 
-  // Active chase: retain forward lead so the new shot is already moving when it appears.
-  if(idx===1){lookSide+=.12*env;roll-=.018*env;}
-  // Boss wind-up: slight push and breathing roll, but no dead stop in the insert.
-  if(idx===2){const charge=smooth(raw);lookLift+=.10*charge;fov-=1.0*charge;}
-  // Close parallel combat: keep screen travel toward the same lead side.
-  if(idx===3){lookSide+=.28*env;roll-=.028*env;fov-=1.0*env;}
-  // Telephoto pass: compression and a restrained pan simulate a near-pass without crossing the action axis.
-  if(idx===4){const pass=Math.exp(-Math.pow((raw-.58)/.12,2));const pan=Math.tanh((raw-.55)*6);lookSide+=.46*pan*env;roll+=.055*pan*env;fov+=3.8*pass;}
-  // Player close-up: carry previous bank through the cut, then settle rather than resetting posture instantly.
-  if(idx===5){const settle=1-smooth(raw);roll+=.035*settle;lookSide-=.08*settle;}
-  // Boss second wind-up: hold the eyeline briefly while camera still advances.
-  if(idx===6){const hold=1-smooth(Math.abs(raw-.42)/.42);lookLift+=.14*hold;fov-=1.2*hold;}
-  // Side-track combat: reduce roll to improve bullet readability but retain lateral parallax.
-  if(idx===7){roll*=1-.35*env;lookSide+=.12*env;}
-  // Final player insert: preserve action-bank and cut back out before the pose completes.
-  if(idx===8){roll+=.030*(1-smooth(raw));lookLift+=.07*env;}
-  // Finale: release scale progressively and return close to level without crossing the axis.
-  if(idx===9){lookLift+=.18*env;roll*=1-.58*env;fov+=1.2*easeOut(raw);}
+  // Itano-inspired inserts: keep same action-axis side, use parallax and controlled whip rather than axis crossing.
+  if(shot.role==='ITANO_PASS'){const pass=Math.exp(-Math.pow((raw-.56)/.16,2));lookSide+=.62*Math.tanh((raw-.48)*5)*env;roll-=.055*env;fov+=4.0*pass;}
+  if(shot.role==='ITANO_CHASE'){lookSide+=.30*Math.sin(raw*Math.PI*2.2)*env;roll-=.06*Math.sin(raw*Math.PI*1.6)*env;fov+=2.0*env;}
+  if(shot.role==='ITANO_BLOOM'){const burst=smooth((raw-.22)/.30);lookSide+=.24*Math.sin(raw*Math.PI*2)*env;roll-=.07*env;fov+=4.5*burst;}
+  if(shot.role==='PLAYER_CLOSE'){lookLift+=.08*env;fov-=1.0*env;}
+  if(shot.role==='BOSS_CLOSE'){lookLift+=.12*env;fov-=1.2*env;}
+  if(shot.role==='COMBAT_WIDE'){lookLift+=.16*env;roll*=1-.50*env;fov+=1.2*easeOut(raw);}
 
   const cr=Math.cos(roll),sr=Math.sin(roll);up=norm(add(scale(up,cr),scale(right,sr)));
   const target=add(add(add(eye,scale(tangent,18)),scale(up,lookLift)),scale(right,lookSide));
-  setVec3(CAMERA.eye,eye);setVec3(CAMERA.target,target);setVec3(CAMERA.up,up);CAMERA.fov=clamp(fov,25,46)*Math.PI/180;
-  const operation=shot.operation!==false&&segLocal>=shot.safeIn&&segLocal<=shot.safeOut;
-  sequenceState={index:idx,patternKey:shot.patternKey,local,segment:segLocal,shot,blend:0,progress:raw,operation,technique:shot.technique};
+  setVec3(CAMERA.eye,eye);setVec3(CAMERA.target,target);setVec3(CAMERA.up,up);CAMERA.fov=clamp(fov,26,46)*Math.PI/180;
+  const operation=!!shot.operation;
+  sequenceState={index:idx,phase:shot.phase,local,segment:segLocal,shot,blend:0,progress:raw,operation,technique:shot.technique,profile:visualProfile};
 }
 function updateCamera(){lookAt(view,CAMERA.eye,CAMERA.target,CAMERA.up);perspective(proj,CAMERA.fov,W/H,CAMERA.near,CAMERA.far);mul(VP,proj,view);camForward=norm(sub(CAMERA.target,CAMERA.eye));camRight=norm(cross(camForward,CAMERA.up));camUp=norm(cross(camRight,camForward));}
 function updateBattleFrame(){
-  const idx=sequenceState.index,p=sequenceState.progress,travel=shotEnvelope(p),local=sequenceState.segment;
-  const bossSide=shotScalar('bossSide',idx,p)+Math.sin(local*.52+idx)*.10*travel;
-  const bossLift=shotScalar('bossLift',idx,p)+Math.sin(local*.72+idx*.8)*.065*travel;
-  const bossDepth=shotScalar('bossDepth',idx,p)+Math.cos(local*.35)*.18*travel;
+  const idx=sequenceState.index,p=sequenceState.progress,travel=shotEnvelope(p),local=sequenceState.segment,shot=sequenceState.shot;
+  const bossSide=shotScalar('bossSide',idx,p)+Math.sin(local*.52+shot.phase)*.08*travel;
+  const bossLift=shotScalar('bossLift',idx,p)+Math.sin(local*.72+shot.phase*.8)*.05*travel;
+  const bossDepth=shotScalar('bossDepth',idx,p)+Math.cos(local*.35)*.14*travel;
   bossPos=add(add(add(CAMERA.eye,scale(camForward,bossDepth)),scale(camRight,bossSide)),scale(camUp,bossLift));
   const playerSide=shotScalar('playerSide',idx,p),playerLift=shotScalar('playerLift',idx,p),playerDepth=shotScalar('playerDepth',idx,p);
   playerRenderBase=add(add(add(CAMERA.eye,scale(camForward,playerDepth)),scale(camRight,playerSide)),scale(camUp,playerLift));
